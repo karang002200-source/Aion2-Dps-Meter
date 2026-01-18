@@ -1,6 +1,7 @@
 package com.tbread
 
 import com.tbread.entity.ParsedDamagePacket
+import com.tbread.util.NicknameNormalizer
 import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentSkipListSet
@@ -37,7 +38,7 @@ class DataStorage {
     }
 
     fun appendNickname(uid: Int, nickname: String) {
-        val cleanedNickname = nickname.replace("\u0000", "").trim()
+        val cleanedNickname = NicknameNormalizer.normalize(nickname)
         if (cleanedNickname.isEmpty()) return
         if (nicknameStorage[uid] != null && nicknameStorage[uid].equals(cleanedNickname)) return
         if (nicknameStorage[uid] != null &&
