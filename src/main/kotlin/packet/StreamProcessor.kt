@@ -68,9 +68,10 @@ class StreamProcessor(private val dataStorage: DataStorage) {
                 val possibleNameLength = packet[innerOffset + 5].toInt() and 0xff
                 if (innerOffset + 6 + possibleNameLength <= packet.size) {
                     val possibleNameBytes = packet.copyOfRange(innerOffset + 6, innerOffset + 6 + possibleNameLength)
-                    if (hasPossibilityNickname(String(possibleNameBytes, Charsets.UTF_8))) {
-                        logger.debug("1번패턴에서 발견된 예상 닉네임 : {}", String(possibleNameBytes, Charsets.UTF_8))
-                        dataStorage.appendNickname(info.value, String(possibleNameBytes, Charsets.UTF_8))
+                    val possibleNickname = normalizeNickname(String(possibleNameBytes, Charsets.UTF_8))
+                    if (isValidNickname(possibleNickname)) {
+                        logger.debug("1번패턴에서 발견된 예상 닉네임 : {}", possibleNickname)
+                        dataStorage.appendNickname(info.value, possibleNickname)
                         originOffset++
                     }
                 }
@@ -79,9 +80,10 @@ class StreamProcessor(private val dataStorage: DataStorage) {
                 val possibleNameLength = packet[innerOffset + 2].toInt() and 0xff
                 if (packet.size >= innerOffset + possibleNameLength + 3 && possibleNameLength.toInt() != 0) {
                     val possibleNameBytes = packet.copyOfRange(innerOffset + 3, innerOffset + possibleNameLength + 3)
-                    if (hasPossibilityNickname(String(possibleNameBytes, Charsets.UTF_8))) {
-                        logger.debug("2번패턴에서 발견된 예상 닉네임 : {}", String(possibleNameBytes, Charsets.UTF_8))
-                        dataStorage.appendNickname(info.value, String(possibleNameBytes, Charsets.UTF_8))
+                    val possibleNickname = normalizeNickname(String(possibleNameBytes, Charsets.UTF_8))
+                    if (isValidNickname(possibleNickname)) {
+                        logger.debug("2번패턴에서 발견된 예상 닉네임 : {}", possibleNickname)
+                        dataStorage.appendNickname(info.value, possibleNickname)
                         originOffset++
                     }
                 }
@@ -92,9 +94,10 @@ class StreamProcessor(private val dataStorage: DataStorage) {
                     if (packet.size > innerOffset + possibleNameLength + 6) {
                         val possibleNameBytes =
                             packet.copyOfRange(innerOffset + 6, innerOffset + possibleNameLength + 6)
-                        if (hasPossibilityNickname(String(possibleNameBytes, Charsets.UTF_8))) {
-                            logger.debug("신규 패턴에서 발견된 예상 닉네임 : {}", String(possibleNameBytes, Charsets.UTF_8))
-                            dataStorage.appendNickname(info.value, String(possibleNameBytes, Charsets.UTF_8))
+                        val possibleNickname = normalizeNickname(String(possibleNameBytes, Charsets.UTF_8))
+                        if (isValidNickname(possibleNickname)) {
+                            logger.debug("신규 패턴에서 발견된 예상 닉네임 : {}", possibleNickname)
+                            dataStorage.appendNickname(info.value, possibleNickname)
                             originOffset++
                         }
                     }
@@ -104,14 +107,18 @@ class StreamProcessor(private val dataStorage: DataStorage) {
         }
     }
 
-    private fun hasPossibilityNickname(nickname: String): Boolean {
+    private fun normalizeNickname(nickname: String): String {
+        return nickname.replace("\u0000", "").trim()
+    }
+
+    private fun isValidNickname(nickname: String): Boolean {
         if (nickname.isEmpty()) return false
-        val regex = Regex("^[가-힣a-zA-Z0-9]+$")
+        val regex = Regex("^[\\p{L}\\p{N}\\p{P}]+$")
         if (!regex.matches(nickname)) return false
         val onlyNumbers = Regex("^[0-9]+$")
         if (onlyNumbers.matches(nickname)) return false
-        val oneAlphabet = Regex("^[A-Za-z]$")
-        return !oneAlphabet.matches(nickname)
+        val oneLetter = Regex("^\\p{L}$")
+        return !oneLetter.matches(nickname)
     }
 
     private fun parsePerfectPacket(packet: ByteArray) {
@@ -228,8 +235,11 @@ class StreamProcessor(private val dataStorage: DataStorage) {
 
         val np = packet.copyOfRange(offset + 1, offset + nicknameLength + 1)
 
-        logger.debug("0번 패턴에서 발견된 확정 닉네임 {}", String(np, Charsets.UTF_8))
-        dataStorage.appendNickname(playerInfo.value, String(np, Charsets.UTF_8))
+        val nickname = normalizeNickname(String(np, Charsets.UTF_8))
+        logger.debug("0번 패턴에서 발견된 확정 닉네임 {}", nickname)
+        if (isValidNickname(nickname)) {
+            dataStorage.appendNickname(playerInfo.value, nickname)
+        }
 
         return true
     }

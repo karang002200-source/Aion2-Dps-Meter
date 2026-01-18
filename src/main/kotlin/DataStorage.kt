@@ -37,16 +37,18 @@ class DataStorage {
     }
 
     fun appendNickname(uid: Int, nickname: String) {
-        if (nicknameStorage[uid] != null && nicknameStorage[uid].equals(nickname)) return
+        val cleanedNickname = nickname.replace("\u0000", "").trim()
+        if (cleanedNickname.isEmpty()) return
+        if (nicknameStorage[uid] != null && nicknameStorage[uid].equals(cleanedNickname)) return
         if (nicknameStorage[uid] != null &&
-            nickname.toByteArray(Charsets.UTF_8).size == 2 &&
-            nickname.toByteArray(Charsets.UTF_8).size < nicknameStorage[uid]!!.toByteArray(Charsets.UTF_8).size
+            cleanedNickname.toByteArray(Charsets.UTF_8).size == 2 &&
+            cleanedNickname.toByteArray(Charsets.UTF_8).size < nicknameStorage[uid]!!.toByteArray(Charsets.UTF_8).size
         ) {
-            logger.debug("닉네임 등록 시도 취소 {} -x> {}",nicknameStorage[uid],nickname)
+            logger.debug("닉네임 등록 시도 취소 {} -x> {}",nicknameStorage[uid], cleanedNickname)
             return
         }
-        logger.debug("닉네임 등록 {} -> {}",nicknameStorage[uid],nickname)
-        nicknameStorage[uid] = nickname
+        logger.debug("닉네임 등록 {} -> {}",nicknameStorage[uid], cleanedNickname)
+        nicknameStorage[uid] = cleanedNickname
     }
 
     @Synchronized

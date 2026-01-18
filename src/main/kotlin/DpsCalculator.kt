@@ -72,8 +72,11 @@ class DpsCalculator(private val dataStorage: DataStorage) {
         }
         pdpMap[currentTarget]!!.forEach lastPdpLoop@{ pdp ->
             totalDamage += pdp.getDamage()
-            val nickname = nicknameData[pdp.getActorId()] ?: nicknameData[dataStorage.getSummonData()[pdp.getActorId()]
-                ?: return@lastPdpLoop] ?: return@lastPdpLoop
+            val actorId = pdp.getActorId()
+            val summonOwnerId = dataStorage.getSummonData()[actorId]
+            val nickname = nicknameData[actorId]
+                ?: summonOwnerId?.let { nicknameData[it] }
+                ?: "Unknown($actorId)"
             if (!dpsData.map.containsKey(nickname)) {
                 dpsData.map[nickname] = PersonalData()
             }
