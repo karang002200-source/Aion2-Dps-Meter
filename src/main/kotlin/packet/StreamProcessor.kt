@@ -1,6 +1,7 @@
 package com.tbread.packet
 
 import com.tbread.DataStorage
+import com.tbread.util.NicknameNormalizer
 import com.tbread.entity.ParsedDamagePacket
 import org.slf4j.LoggerFactory
 
@@ -68,7 +69,7 @@ class StreamProcessor(private val dataStorage: DataStorage) {
                 val possibleNameLength = packet[innerOffset + 5].toInt() and 0xff
                 if (innerOffset + 6 + possibleNameLength <= packet.size) {
                     val possibleNameBytes = packet.copyOfRange(innerOffset + 6, innerOffset + 6 + possibleNameLength)
-                    val possibleNickname = normalizeNickname(String(possibleNameBytes, Charsets.UTF_8))
+                    val possibleNickname = NicknameNormalizer.normalize(String(possibleNameBytes, Charsets.UTF_8))
                     if (isValidNickname(possibleNickname)) {
                         logger.debug("1번패턴에서 발견된 예상 닉네임 : {}", possibleNickname)
                         dataStorage.appendNickname(info.value, possibleNickname)
@@ -80,7 +81,7 @@ class StreamProcessor(private val dataStorage: DataStorage) {
                 val possibleNameLength = packet[innerOffset + 2].toInt() and 0xff
                 if (packet.size >= innerOffset + possibleNameLength + 3 && possibleNameLength.toInt() != 0) {
                     val possibleNameBytes = packet.copyOfRange(innerOffset + 3, innerOffset + possibleNameLength + 3)
-                    val possibleNickname = normalizeNickname(String(possibleNameBytes, Charsets.UTF_8))
+                    val possibleNickname = NicknameNormalizer.normalize(String(possibleNameBytes, Charsets.UTF_8))
                     if (isValidNickname(possibleNickname)) {
                         logger.debug("2번패턴에서 발견된 예상 닉네임 : {}", possibleNickname)
                         dataStorage.appendNickname(info.value, possibleNickname)
@@ -94,7 +95,7 @@ class StreamProcessor(private val dataStorage: DataStorage) {
                     if (packet.size > innerOffset + possibleNameLength + 6) {
                         val possibleNameBytes =
                             packet.copyOfRange(innerOffset + 6, innerOffset + possibleNameLength + 6)
-                        val possibleNickname = normalizeNickname(String(possibleNameBytes, Charsets.UTF_8))
+                        val possibleNickname = NicknameNormalizer.normalize(String(possibleNameBytes, Charsets.UTF_8))
                         if (isValidNickname(possibleNickname)) {
                             logger.debug("신규 패턴에서 발견된 예상 닉네임 : {}", possibleNickname)
                             dataStorage.appendNickname(info.value, possibleNickname)
@@ -105,10 +106,6 @@ class StreamProcessor(private val dataStorage: DataStorage) {
             }
             originOffset++
         }
-    }
-
-    private fun normalizeNickname(nickname: String): String {
-        return nickname.replace("\u0000", "").trim()
     }
 
     private fun isValidNickname(nickname: String): Boolean {
@@ -235,7 +232,7 @@ class StreamProcessor(private val dataStorage: DataStorage) {
 
         val np = packet.copyOfRange(offset + 1, offset + nicknameLength + 1)
 
-        val nickname = normalizeNickname(String(np, Charsets.UTF_8))
+        val nickname = NicknameNormalizer.normalize(String(np, Charsets.UTF_8))
         logger.debug("0번 패턴에서 발견된 확정 닉네임 {}", nickname)
         if (isValidNickname(nickname)) {
             dataStorage.appendNickname(playerInfo.value, nickname)
